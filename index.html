@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Inspector Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- File drop overlay -->
+  <div class="drop-zone-overlay" id="dropOverlay">Drop JSON file here</div>
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">{}</div>
+      <span class="logo-text">JSON <span>Inspector</span></span>
+    </div>
+    <div class="header-sep"></div>
+
+    <!-- Workspace actions (hidden until JSON is loaded) -->
+    <div class="header-actions" id="wsActions" style="display:none">
+      <div class="view-toggle" id="viewToggle">
+        <button class="active" data-view="tree">Tree</button>
+        <button data-view="raw">Raw</button>
+        <button data-view="table">Table</button>
+        <button data-view="diff">Diff</button>
+      </div>
+      <div class="sep"></div>
+      <button class="ghost" id="btnExpandAll">⊞ Expand</button>
+      <button class="ghost" id="btnCollapseAll">⊟ Collapse</button>
+      <div class="sep"></div>
+      <button class="ghost" id="btnCopyJSON">Copy JSON</button>
+      <button class="ghost" id="btnDownload">Download</button>
+      <button class="ghost" id="btnMinify">Minify</button>
+    </div>
+
+    <div class="header-right">
+      <button class="ghost" id="btnTheme"     title="Toggle theme">◐</button>
+      <button class="ghost" id="btnShortcuts" title="Keyboard shortcuts (?)">⌨</button>
+      <button class="ghost" id="btnNew"       title="Load new JSON">+ New</button>
+    </div>
+  </header>
+
+  <!-- ── Landing ────────────────────────────────────────────────────────── -->
+  <div class="landing" id="landing">
+    <div class="landing-hero">
+      <h2>Professional JSON Inspector</h2>
+      <p>Paste, fetch, or drop a JSON file — explore, search, filter, diff, and edit in the browser.</p>
+    </div>
+
+    <div class="landing-card">
+      <div class="input-tabs">
+        <button class="input-tab active" data-itab="paste">Paste</button>
+        <button class="input-tab"        data-itab="url">URL</button>
+        <button class="input-tab"        data-itab="sample">Samples</button>
+        <button class="input-tab"        data-itab="history">History</button>
+        <button class="input-tab"        data-itab="diff-input">Diff</button>
+      </div>
+
+      <!-- Paste tab -->
+      <div class="tab-pane active" data-ipane="paste">
+        <textarea id="pasteArea" placeholder='Paste any JSON here — objects, arrays, or primitives…'></textarea>
+        <div class="tab-row">
+          <button class="primary" id="btnLoadPaste">Inspect ▶</button>
+          <span class="hint">Ctrl/Cmd+Enter or drop a .json file anywhere</span>
+        </div>
+      </div>
+
+      <!-- URL tab -->
+      <div class="tab-pane" data-ipane="url">
+        <input type="url" id="urlInput" placeholder="https://api.example.com/data.json">
+        <div class="tab-row">
+          <button class="primary" id="btnLoadUrl">Fetch &amp; Inspect ▶</button>
+          <span class="hint">URL must return JSON with permissive CORS headers.</span>
+        </div>
+      </div>
+
+      <!-- Samples tab -->
+      <div class="tab-pane" data-ipane="sample">
+        <div class="sample-grid" id="sampleGrid"></div>
+      </div>
+
+      <!-- History tab -->
+      <div class="tab-pane" data-ipane="history">
+        <div class="history-list" id="historyList">
+          <div class="inspector-empty">No history yet — load some JSON first.</div>
+        </div>
+      </div>
+
+      <!-- Diff input tab -->
+      <div class="tab-pane" data-ipane="diff-input">
+        <div class="diff-inputs" style="padding:0; border:none; gap:8px">
+          <div class="diff-input-block">
+            <label>Left (A)</label>
+            <textarea id="diffA" placeholder='{"a":1}'></textarea>
+          </div>
+          <div class="diff-input-block">
+            <label>Right (B)</label>
+            <textarea id="diffB" placeholder='{"a":2,"b":3}'></textarea>
+          </div>
+        </div>
+        <div class="tab-row">
+          <button class="primary" id="btnDiffFromLanding">Compare ▶</button>
+        </div>
+      </div>
+
+      <div class="error-msg hidden" id="errorMsg"></div>
+    </div>
+  </div>
+
+  <!-- ── Workspace (shown after JSON loads) ─────────────────────────────── -->
+  <div class="workspace hidden" id="workspace">
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stats-track"   id="statsTrack"></div>
+      <div class="stats-items"   id="statsItems"></div>
+      <div class="stats-summary" id="statsSummary"></div>
+    </div>
+
+    <!-- Search / filter toolbar -->
+    <div class="ws-toolbar" id="wsToolbar">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search keys/values, or $. for JSONPath…">
+        <span  id="searchInfo" style="display:none"></span>
+        <button class="ghost" id="searchPrev"  title="Previous (Shift+Enter)">↑</button>
+        <button class="ghost" id="searchNext"  title="Next (Enter)">↓</button>
+        <button class="ghost" id="searchClear" title="Clear">✕</button>
+      </div>
+      <div class="sep"></div>
+      <select class="sort-select" id="sortSelect">
+        <option value="original">Original order</option>
+        <option value="asc">Keys A → Z</option>
+        <option value="desc">Keys Z → A</option>
+      </select>
+    </div>
+
+    <!-- View panels -->
+    <div class="main-body" id="mainBody">
+
+      <!-- Tree + Inspector -->
+      <div id="treeView" style="display:flex; flex:1; min-width:0; flex-direction:column">
+        <div style="display:flex; flex:1; min-height:0">
+          <div class="tree-wrap">
+            <div class="tree-panel" id="treePanel"></div>
+          </div>
+          <aside class="inspector" id="inspector">
+            <div class="inspector-header">Inspector</div>
+            <div class="inspector-empty" id="inspEmpty">Click any node in the tree to inspect it.</div>
+            <div class="inspector-content hidden" id="inspContent">
+              <div>
+                <span class="insp-type-badge" id="inspTypeBadge"></span>
+              </div>
+              <div class="insp-row">
+                <div class="insp-label">Path</div>
+                <div class="path-formats" id="pathFormats"></div>
+              </div>
+              <div class="insp-row" id="inspValueRow">
+                <div class="insp-label" id="inspValueLabel">Value</div>
+                <pre class="insp-value-box" id="inspValueBox"></pre>
+                <div class="insp-btns" style="margin-top:4px">
+                  <button id="btnCopyValue">Copy value</button>
+                  <button id="btnEdit">Edit</button>
+                </div>
+              </div>
+              <div class="insp-row" id="inspEditRow" style="display:none">
+                <div class="insp-label">Edit value</div>
+                <textarea class="edit-textarea" id="editArea"></textarea>
+                <div class="insp-btns" style="margin-top:4px">
+                  <button class="primary" id="btnSaveEdit">Save</button>
+                  <button id="btnCancelEdit">Cancel</button>
+                </div>
+              </div>
+              <div class="insp-row" id="inspSiblingsRow" style="display:none">
+                <div class="insp-label">Siblings</div>
+                <div class="insp-siblings" id="inspSiblings"></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <div class="breadcrumb" id="breadcrumb" style="display:none"></div>
+      </div>
+
+      <!-- Raw view -->
+      <div class="raw-wrap hidden" id="rawView">
+        <pre class="raw-view" id="rawPre"></pre>
+      </div>
+
+      <!-- Table view -->
+      <div class="table-wrap hidden" id="tableView">
+        <div id="tableInfo" class="table-info"></div>
+        <div id="tableContainer"></div>
+      </div>
+
+      <!-- Diff view -->
+      <div class="diff-wrap hidden" id="diffView">
+        <div class="diff-toolbar">
+          <button class="ghost" id="btnRediff">Re-compare</button>
+          <span class="diff-summary" id="diffSummary"></span>
+        </div>
+        <div class="diff-inputs-ws" id="diffInputsWs">
+          <div class="diff-input-block">
+            <label>Left (A)</label>
+            <textarea id="diffAWs" placeholder='{"a":1}'></textarea>
+          </div>
+          <div class="diff-input-block">
+            <label>Right (B)</label>
+            <textarea id="diffBWs" placeholder='{"a":2}'></textarea>
+          </div>
+        </div>
+        <div class="diff-result" id="diffResult">
+          <div class="diff-result-empty">Paste two JSON documents above and click Re-compare.</div>
+        </div>
+      </div>
+
+    </div><!-- /.main-body -->
+  </div><!-- /#workspace -->
+
+</div><!-- /#app -->
+
+<!-- ── Shortcuts modal ────────────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="shortcutsModal">
+  <div class="modal">
+    <div class="modal-title">Keyboard Shortcuts</div>
+    <div class="shortcuts-grid">
+      <div class="sc-section">Navigation</div>
+      <span class="sc-key">E</span>         <span class="sc-desc">Expand all nodes</span>
+      <span class="sc-key">C</span>         <span class="sc-desc">Collapse all nodes</span>
+      <span class="sc-key">1</span>         <span class="sc-desc">Tree view</span>
+      <span class="sc-key">2</span>         <span class="sc-desc">Raw view</span>
+      <span class="sc-key">3</span>         <span class="sc-desc">Table view</span>
+      <span class="sc-key">4</span>         <span class="sc-desc">Diff view</span>
+
+      <div class="sc-section">Search</div>
+      <span class="sc-key">/ or Ctrl+F</span> <span class="sc-desc">Focus search bar</span>
+      <span class="sc-key">Enter</span>       <span class="sc-desc">Next match</span>
+      <span class="sc-key">Shift+Enter</span> <span class="sc-desc">Previous match</span>
+      <span class="sc-key">Esc</span>         <span class="sc-desc">Clear search / close modal</span>
+
+      <div class="sc-section">Actions</div>
+      <span class="sc-key">Ctrl/Cmd+Enter</span> <span class="sc-desc">Inspect pasted JSON</span>
+      <span class="sc-key">M</span>              <span class="sc-desc">Toggle minify (raw view)</span>
+      <span class="sc-key">?</span>              <span class="sc-desc">Show this panel</span>
+    </div>
+    <div style="margin-top:18px; text-align:right">
+      <button class="primary" id="btnCloseShortcuts">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts: load order matters — utils first, app last -->
+<script src="js/utils.js"></script>
+<script src="js/jsonpath.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/inspector.js"></script>
+<script src="js/search.js"></script>
+<script src="js/views.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
