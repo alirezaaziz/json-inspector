@@ -36,17 +36,43 @@ function renderRaw() {
 
 // ── Table view ────────────────────────────────────────────────────────────────
 
+function findTableArray() {
+  // 1. Root is already an array
+  if (Array.isArray(S.data)) return { arr: S.data, path: '$' };
+
+  // 2. User explicitly selected an array node in the tree
+  if (Array.isArray(S.selectedValue)) return { arr: S.selectedValue, path: S.selectedPath };
+
+  // 3. Auto-detect: find all arrays among the root object's direct keys,
+  //    pick the one with the most items (most likely the "data" array).
+  if (S.data && typeof S.data === 'object' && !Array.isArray(S.data)) {
+    const candidates = Object.entries(S.data)
+      .filter(([, v]) => Array.isArray(v))
+      .sort(([, a], [, b]) => b.length - a.length);
+    if (candidates.length > 0) {
+      const [key, arr] = candidates[0];
+      return { arr, path: '$.' + key };
+    }
+  }
+
+  return null;
+}
+
 function renderTable() {
-  const arr = S.data;
-  if (!Array.isArray(arr)) {
-    E.tableInfo.textContent   = 'Table view requires a JSON array at root.';
+  const found = findTableArray();
+
+  if (!found) {
+    E.tableInfo.textContent    = 'No array found. Load a JSON array, or select an array node in the Tree view.';
     E.tableContainer.innerHTML = '';
     return;
   }
 
+  const arr     = found.arr;
+  const arrPath = found.path;
+
   const objs = arr.filter(v => v && typeof v === 'object' && !Array.isArray(v));
   if (!objs.length) {
-    E.tableInfo.textContent   = `Array of ${arr.length} items — no objects to tabulate.`;
+    E.tableInfo.textContent    = `${arrPath} — ${arr.length} items (no objects to display as table).`;
     E.tableContainer.innerHTML = '';
     return;
   }
@@ -55,7 +81,7 @@ function renderTable() {
   const colSet = new Set();
   objs.forEach(o => Object.keys(o).forEach(k => colSet.add(k)));
   const cols = Array.from(colSet);
-  E.tableInfo.textContent = `${arr.length} rows × ${cols.length} columns`;
+  E.tableInfo.textContent = `${arrPath} — ${arr.length} rows × ${cols.length} columns`;
 
   // Sort rows
   let rows = arr.map((v, i) => ({ i, v }));
