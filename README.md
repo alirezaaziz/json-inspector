@@ -1,4 +1,6 @@
-# JSON Inspector
+<p align="center"><img src="public/icon.svg" width="88" height="88" alt="JSON Inspector icon"></p>
+
+<h1 align="center">JSON Inspector</h1>
 
 A fast, private JSON viewer and editor that runs entirely in the browser. Open, explore, query, edit, diff and convert JSON. Nothing is uploaded, and it works offline.
 
