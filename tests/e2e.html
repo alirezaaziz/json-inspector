@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>e2e</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  iframe { border: 0; width: 100%; height: 100%; display: block; }
+  #out { position: fixed; left: 0; bottom: 0; max-height: 50%; overflow: auto; margin: 0; font: 11px monospace; background: #000c; color: #0f0; z-index: 9; display: none; }
+  body.show #out { display: block; }
+</style>
+</head>
+<body>
+<iframe id="f"></iframe>
+<pre id="out"></pre>
+<script type="module">
+// Drives the real app inside an iframe. ?scenario=<name> leaves the app in that state for a screenshot.
+const params = new URLSearchParams(location.search);
+const scenario = params.get('scenario') || 'all';
+const theme = params.get('theme');
+const f = document.getElementById('f');
+if (params.get('w')) { f.style.width = params.get('w') + 'px'; f.style.borderRight = '1px solid #888'; }
+const log = [];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let W, D;
+const $ = s => D.querySelector(s);
+const $$ = s => [...D.querySelectorAll(s)];
+const results = [];
+function check(name, cond, extra = '') { results.push([cond ? 'ok' : 'FAIL', name + (cond ? '' : ' ' + extra)]); document.getElementById('out').textContent = 'RUNNING\n' + results.map(r => r.join('  ')).join('\n'); }
+const key = (el, k, opts = {}) => el.dispatchEvent(new W.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...opts }));
+const click = el => el.dispatchEvent(new W.MouseEvent('click', { bubbles: true, cancelable: true }));
+const type = (el, v) => { el.value = v; el.dispatchEvent(new W.Event('input', { bubbles: true })); };
+
+async function load(url) {
+  f.src = url;
+  await new Promise(r => f.onload = r);
+  W = f.contentWindow; D = f.contentDocument;
+  if (theme) W.localStorage.setItem('jip:theme', JSON.stringify(theme));
+  await sleep(250);
+}
+
+try {
+  await load('/public/' + (theme ? '' : ''));
+  if (theme) { await load('/public/'); }
+
+  // Landing: paste broken JSON, see error, then repaired JSON
+  type($('#input'), '{\n  "a": 1,\n  "b": [1, 2\n  "c": }');
+  await sleep(400);
+  check('landing shows invalid status', $('#inputStatus').classList.contains('bad'), $('#inputStatus').textContent);
+  click($('#btnInspect'));
+  await sleep(100);
+  check('landing shows error box', !$('#inputErr').hidden && /line 4/i.test($('#inputErr').textContent), $('#inputErr').textContent);
+  if (scenario === 'error') throw 'stop';
+
+  type($('#input'), "{ name: 'Ada', // comment\n skills: ['math', 'engines',], nested: {deep: {x: 1}} }");
+  await sleep(400);
+  check('landing shows repair status', $('#inputStatus').classList.contains('warn'));
+  key($('#input'), 'Enter', { metaKey: true });
+  await sleep(200);
+  check('workspace visible after inspect', !$('#workspace').hidden);
+  check('tree has rows', $$('.row').length >= 4, $$('.row').length);
+  check('repaired badge', !$('#docBadge').hidden);
+
+  // Open a sample via the landing
+  click($('#btnNew'));
+  await sleep(50);
+  click($('[data-sample="0"]'));
+  await sleep(200);
+  check('sample loaded', $('#docName').textContent === 'REST API response');
+
+  // Select a row & inspector
+  const tokenRow = $$('.row').find(r => r.querySelector('.k')?.textContent === 'token');
+  click(tokenRow);
+  await sleep(80);
+  check('inspector shows key', $('.insp-key')?.textContent === 'token');
+  check('JWT detected', /JSON Web Token/.test($('#inspector').textContent));
+  check('crumbs updated', /token/.test($('#crumbs').textContent));
+  if (scenario === 'jwt') throw 'stop';
+
+  // Keyboard navigation in tree
+  const tree = $('#tree');
+  tree.focus();
+  key(tree, 'ArrowDown');
+  await sleep(50);
+  check('arrow down selects next', $('.insp-key')?.textContent === 'pagination', $('.insp-key')?.textContent);
+  key(tree, 'ArrowRight'); await sleep(30);
+  key(tree, 'ArrowLeft'); await sleep(30);
+  check('arrow left goes to parent', $('.insp-key')?.textContent === 'pagination');
+  key(tree, 'ArrowLeft'); await sleep(30);
+  check('arrow left collapses', $$('.row.sel')[0]?.getAttribute('aria-expanded') === 'false');
+
+  // Search: text
+  if (!$('#q')) throw new Error('no #q; ws-bar: ' + $('#treeBar')?.outerHTML.slice(0, 400));
+  type($('#q'), 'london');
+  await sleep(300);
+  check('text search finds match in collapsed node', $('#qInfo').textContent.startsWith('1 /'), $('#qInfo').textContent);
+  check('match row rendered', $$('.row.hit').length === 1);
+  // JSONPath
+  type($('#q'), '$.data[?(@.score > 90)].name');
+  await sleep(300);
+  check('jsonpath search', $('#qInfo').textContent.endsWith('/ 3'), $('#qInfo').textContent);
+  check('path chip visible', $('#qWrap').classList.contains('path-mode'));
+  click($('#qFilter'));
+  await sleep(100);
+  check('filter mode hides non matches', $$('.row').length < 12, $$('.row').length);
+  if (scenario === 'search') throw 'stop';
+  click($('#qFilter'));
+  key($('#q'), 'Escape');
+  await sleep(50);
+
+  // Edit a value via inspector
+  const statusRow = $$('.row').find(r => r.querySelector('.k')?.textContent === 'status');
+  click(statusRow); await sleep(50);
+  click($('#inspector [data-act="edit"]')); await sleep(50);
+  const ed = $('.edit-input');
+  ed.value = 'changed';
+  click($('#inspector [data-act="save"]')); await sleep(80);
+  check('edit saved', W.jsonInspector.doc.status === 'changed');
+  check('undo enabled', !$('#btnUndo').disabled);
+  key(D.body, 'z', { metaKey: true }); await sleep(80);
+  check('undo restores', W.jsonInspector.doc.status === 'ok', W.jsonInspector.doc.status);
+  key(D.body, 'z', { metaKey: true, shiftKey: true }); await sleep(80);
+  check('redo reapplies', W.jsonInspector.doc.status === 'changed');
+
+  // Delete via keyboard
+  const reqRow = $$('.row').find(r => r.querySelector('.k')?.textContent === 'requestId');
+  click(reqRow); tree.focus(); key(tree, 'Delete'); await sleep(80);
+  check('delete key removes node', !('requestId' in W.jsonInspector.doc));
+  key(D.body, 'z', { metaKey: true }); await sleep(80);
+  check('undo delete', 'requestId' in W.jsonInspector.doc);
+
+  // Embedded JSON
+  key(D.body, 'c'); await sleep(50);
+  const metaRow = $$('.row').find(r => r.querySelector('.k')?.textContent === 'meta');
+  click(metaRow); await sleep(50);
+  click($('#inspector [data-act="parse-embedded"]')); await sleep(80);
+  check('embedded JSON expanded', typeof W.jsonInspector.doc.meta === 'object');
+
+  // Context menu
+  const dataRow = $$('.row').find(r => r.querySelector('.k')?.textContent === 'data');
+  dataRow.dispatchEvent(new W.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+  await sleep(50);
+  check('context menu opens', !!$('.menu') && /Open in table/.test($('.menu').textContent));
+  if (scenario === 'menu') throw 'stop';
+  click([...D.querySelectorAll('.menu-item')].find(b => /Open in table/.test(b.textContent)));
+  await sleep(150);
+
+  // Table view
+  check('table view active', S().view === 'table');
+  check('table has rows', $$('.grid tbody tr[data-i]').length === 4, $$('.grid tbody tr[data-i]').length);
+  check('flattened column', $$('.grid th').some(th => th.textContent.includes('address.city')));
+  const th = $$('.grid th').find(t => t.textContent === 'score');
+  click(th); click(th); await sleep(50);
+  check('table sort desc', $$('.grid tbody tr[data-i]')[0]?.dataset.i === '0', $$('.grid tbody tr[data-i]')[0]?.dataset.i);
+  type($('#tableFilter'), 'grace'); await sleep(250);
+  check('table filter', $$('.grid tbody tr[data-i]').length === 1);
+  if (scenario === 'table') throw 'stop';
+
+  // Raw view
+  key(D.body, '2'); await sleep(100);
+  check('raw view renders lines', $$('.raw .ln').length > 20);
+  click($('.view[data-view="raw"] [data-act="edit"]')); await sleep(50);
+  const ta = $('.raw-edit');
+  check('raw editor opens', !!ta);
+  ta.value = '{"x": [1,2,3], "y": {"z": true},}';
+  ta.dispatchEvent(new W.Event('input', { bubbles: true }));
+  await sleep(350);
+  check('raw editor repair hint', $('#rawValid').classList.contains('warn'), $('#rawValid').className);
+  key(ta, 'Enter', { metaKey: true }); await sleep(100);
+  check('raw apply', JSON.stringify(W.jsonInspector.doc) === '{"x":[1,2,3],"y":{"z":true}}', JSON.stringify(W.jsonInspector.doc));
+  if (scenario === 'raw') throw 'stop';
+  key(D.body, 'z', { metaKey: true }); await sleep(80);
+
+  // Generate
+  key(D.body, '5'); await sleep(100);
+  check('generate typescript', /export interface Root/.test($('#genOut').textContent));
+  click($('[data-fmt="go"]')); await sleep(50);
+  check('generate go', /type Root struct/.test($('#genOut').textContent));
+  click($('[data-fmt="schema"]')); await sleep(50);
+  if (scenario === 'generate') throw 'stop';
+
+  // Diff
+  key(D.body, '4'); await sleep(100);
+  const b = structuredClone(W.jsonInspector.doc);
+  b.status = 'error'; b.data.splice(1, 0, { id: 99, name: 'New person' }); delete b.token;
+  type($('#diffB'), JSON.stringify(b, null, 2));
+  click($('.view[data-view="diff"] [data-act="compare"]')); await sleep(100);
+  const sum = $('#diffSum').textContent;
+  check('diff summary', /\+ 1 added/.test(sum) && /− 1 removed/.test(sum) && /~ 1 changed/.test(sum), sum);
+  if (scenario === 'diff') throw 'stop';
+
+  // Back to tree, expand all / collapse all
+  key(D.body, '1'); await sleep(80);
+  key(D.body, 'e'); await sleep(80);
+  const expanded = $$('.row').length;
+  key(D.body, 'c'); await sleep(80);
+  check('expand/collapse all', expanded > $$('.row').length, `${expanded} vs ${$$('.row').length}`);
+
+  // Shortcuts modal
+  key(D.body, '?'); await sleep(50);
+  check('shortcuts modal', !!D.querySelector('dialog[open]'));
+  if (scenario === 'shortcuts') throw 'stop';
+  D.querySelector('dialog[open]').close();
+
+  // Share link round trip
+  const { encodeShare } = await import('/public/js/share.js');
+  const enc = await encodeShare(JSON.stringify({ shared: [1, 2, 3] }));
+  await load('/public/?shared#z=' + enc);
+  await sleep(300);
+  check('share link loads', JSON.stringify(W.jsonInspector.doc) === '{"shared":[1,2,3]}');
+  check('hash cleared', !W.location.hash);
+
+  // Large document stays responsive
+  const big = Array.from({ length: 60000 }, (_, i) => ({ id: i, name: 'user' + i, tags: ['a', 'b'], nested: { v: i % 7 } }));
+  const t0 = performance.now();
+  await load('/public/?big');
+  type($('#input'), JSON.stringify(big));
+  key($('#input'), 'Enter', { metaKey: true });
+  await sleep(50);
+  check('large doc opens < 2.5s', performance.now() - t0 < 2500, Math.round(performance.now() - t0) + 'ms');
+  check('large doc DOM is virtualized', $$('.row').length < 200, $$('.row').length);
+  type($('#q'), 'user59999'); await sleep(600);
+  check('search in large doc', /^1 \//.test($('#qInfo').textContent), $('#qInfo').textContent);
+  check('show-more reveal', $$('.row.hit').length === 1);
+} catch (e) {
+  if (e !== 'stop') results.push(['FAIL', 'exception: ' + (e?.stack || e)]);
+}
+function S() { return W.jsonInspector.S; }
+
+const failed = results.filter(r => r[0] === 'FAIL');
+document.getElementById('out').textContent = `${failed.length ? 'FAILED' : 'PASSED'} ${results.length - failed.length}/${results.length}\n` + results.map(r => r.join('  ')).join('\n');
+document.title = failed.length ? 'FAIL' : 'PASS';
+if (scenario === 'all') document.body.classList.add('show');
+</script>
+</body>
+</html>

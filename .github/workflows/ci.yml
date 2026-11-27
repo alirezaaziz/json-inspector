@@ -1,0 +1,25 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Serve repository
+        run: python3 -m http.server 8765 --bind 127.0.0.1 &
+      - name: Unit tests
+        run: |
+          sleep 1
+          out=$(google-chrome --headless=new --no-sandbox --disable-gpu --virtual-time-budget=10000 --dump-dom http://127.0.0.1:8765/tests/)
+          echo "$out" | sed -n '/<pre id="out">/,/<\/pre>/p'
+          echo "$out" | grep -q '<title>PASS</title>'
+      - name: End-to-end tests
+        run: |
+          out=$(google-chrome --headless=new --no-sandbox --disable-gpu --window-size=1440,900 --virtual-time-budget=60000 --dump-dom http://127.0.0.1:8765/tests/e2e.html)
+          echo "$out" | sed -n '/<pre id="out">/,/<\/pre>/p'
+          echo "$out" | grep -q '<title>PASS</title>'

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JSON Inspector — view, query & transform JSON</title>
+  <meta name="description" content="A fast, private JSON viewer and editor that runs entirely in your browser. Tree view, JSONPath queries, table view, structural diff, auto-repair, and type generation for TypeScript, Zod, Go, Python and JSON Schema.">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="JSON Inspector">
+  <meta property="og:description" content="View, query, diff and transform JSON — privately, in your browser.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/main.js"></script>
+  <link rel="modulepreload" href="js/state.js">
+  <link rel="modulepreload" href="js/util.js">
+  <link rel="modulepreload" href="js/path.js">
+  <link rel="modulepreload" href="js/parse.js">
+  <link rel="modulepreload" href="js/jsonpath.js">
+  <link rel="modulepreload" href="js/search.js">
+  <link rel="modulepreload" href="js/share.js">
+  <link rel="modulepreload" href="js/storage.js">
+  <link rel="modulepreload" href="js/icons.js">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/tree.js">
+  <link rel="modulepreload" href="js/inspector.js">
+  <link rel="modulepreload" href="js/actions.js">
+  <link rel="modulepreload" href="js/diff.js">
+  <link rel="modulepreload" href="js/generate.js">
+  <link rel="modulepreload" href="js/samples.js">
+  <link rel="modulepreload" href="js/views/raw.js">
+  <link rel="modulepreload" href="js/views/table.js">
+  <link rel="modulepreload" href="js/views/diff.js">
+  <link rel="modulepreload" href="js/views/generate.js">
+</head>
+<body>
+<div id="app">
+
+  <header class="hdr">
+    <a class="brand" id="brand" href="./" aria-label="JSON Inspector home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" class="bm-bg"/><path class="bm-fg" d="M12.5 8.5h-1a2.5 2.5 0 0 0-2.5 2.5v2.6c0 1.1-.7 2-1.8 2.4 1.1.4 1.8 1.3 1.8 2.4V21a2.5 2.5 0 0 0 2.5 2.5h1M19.5 8.5h1A2.5 2.5 0 0 1 23 11v2.6c0 1.1.7 2 1.8 2.4-1.1.4-1.8 1.3-1.8 2.4V21a2.5 2.5 0 0 1-2.5 2.5h-1"/><circle class="bm-dot" cx="16" cy="16" r="1.8"/></svg>
+      <span class="brand-name">JSON <b>Inspector</b></span>
+    </a>
+
+    <div class="hdr-doc ws-only">
+      <button class="doc-name" id="docName" title="Rename document"></button>
+      <span class="chip" id="docBadge" hidden></span>
+    </div>
+
+    <nav class="tabs ws-only" id="viewTabs" role="tablist" aria-label="Views">
+      <button role="tab" data-view="tree" title="Tree (1)"><i data-icon="tree"></i><span>Tree</span></button>
+      <button role="tab" data-view="raw" title="Raw / edit (2)"><i data-icon="code"></i><span>Raw</span></button>
+      <button role="tab" data-view="table" title="Table (3)"><i data-icon="table"></i><span>Table</span></button>
+      <button role="tab" data-view="diff" title="Diff (4)"><i data-icon="diff"></i><span>Diff</span></button>
+      <button role="tab" data-view="generate" title="Generate types (5)"><i data-icon="sparkles"></i><span>Generate</span></button>
+    </nav>
+
+    <div class="hdr-right">
+      <div class="hdr-group ws-only">
+        <button class="icon-btn" id="btnUndo" aria-label="Undo" disabled><i data-icon="undo"></i></button>
+        <button class="icon-btn" id="btnRedo" aria-label="Redo" disabled><i data-icon="redo"></i></button>
+        <span class="vsep"></span>
+        <button class="icon-btn" id="btnShare" title="Share as link" aria-label="Share as link"><i data-icon="share"></i></button>
+        <button class="icon-btn" id="btnDownload" title="Download / copy" aria-label="Download or copy" aria-haspopup="menu"><i data-icon="download"></i></button>
+        <span class="vsep"></span>
+      </div>
+      <button class="icon-btn" id="btnTheme" aria-label="Change theme"></button>
+      <button class="icon-btn hide-sm" id="btnShortcuts" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><i data-icon="keyboard"></i></button>
+      <a class="icon-btn hide-sm" href="https://github.com/alirezaaziz/json-inspector" target="_blank" rel="noopener noreferrer" title="Source on GitHub" aria-label="Source on GitHub"><i data-icon="github"></i></a>
+      <button class="btn primary sm ws-only" id="btnNew"><i data-icon="plus"></i><span>New</span></button>
+    </div>
+  </header>
+
+  <!-- ── Landing ─────────────────────────────────────────────────────────── -->
+  <main id="landing" class="landing">
+    <section class="hero">
+      <span class="eyebrow"><i data-icon="lock"></i>Runs 100% in your browser · works offline</span>
+      <h1>Inspect, query &amp; transform JSON</h1>
+      <p>Paste, open or fetch JSON — explore it as a tree, query it with JSONPath, view arrays as tables, diff documents and generate types. Your data never leaves this device.</p>
+    </section>
+
+    <section class="input-card" aria-label="Input">
+      <div class="input-toolbar">
+        <button class="btn sm" id="btnOpen"><i data-icon="upload"></i>Open file</button>
+        <button class="btn sm" id="btnUrl"><i data-icon="globe"></i>From URL</button>
+        <span class="grow"></span>
+        <button class="btn sm ghost" id="btnFormat" title="Format the text in place"><i data-icon="wand"></i><span class="hide-sm">Format</span></button>
+        <button class="icon-btn sm" id="btnClearInput" title="Clear" aria-label="Clear input"><i data-icon="x"></i></button>
+      </div>
+      <div class="url-row" id="urlRow" hidden>
+        <input type="url" id="urlInput" class="input" placeholder="https://api.example.com/data.json" spellcheck="false" autocomplete="url">
+        <button class="btn" id="btnFetch"><i data-icon="download"></i>Fetch</button>
+      </div>
+      <textarea id="input" class="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="JSON input"
+        placeholder='Paste JSON here — or drop a file anywhere on the page.
+
+JSON Lines, JSON5, comments and trailing commas are fine too:
+{
+  name: "Ada",  // will be repaired automatically
+  skills: ["math", "engines",],
+}'></textarea>
+      <div class="input-err" id="inputErr" hidden role="alert"></div>
+      <div class="input-foot">
+        <span class="input-status" id="inputStatus" aria-live="polite"></span>
+        <span class="grow"></span>
+        <button class="btn" id="btnCompare" title="Compare this JSON with another document"><i data-icon="diff"></i><span class="hide-sm">Compare</span></button>
+        <button class="btn primary" id="btnInspect">Inspect <kbd id="kbdHint"></kbd></button>
+      </div>
+    </section>
+
+    <section class="landing-cols">
+      <div class="panel">
+        <div class="panel-head"><h2><i data-icon="clock"></i>Recent</h2><button class="link-btn" id="recentClear" hidden>Clear all</button></div>
+        <div id="recentList" class="recent-list"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2><i data-icon="zap"></i>Try a sample</h2></div>
+        <div id="sampleList" class="sample-list"></div>
+      </div>
+    </section>
+
+    <section class="features" aria-label="Features">
+      <div class="feature"><i data-icon="tree"></i><h3>Fast tree view</h3><p>Virtualized rendering opens multi-megabyte files smoothly. Keyboard navigation, inline editing, undo/redo.</p></div>
+      <div class="feature"><i data-icon="search"></i><h3>Search &amp; JSONPath</h3><p>Search keys and values with regex, or query with JSONPath filters like <code>$..book[?(@.price&nbsp;&lt;&nbsp;10)]</code>.</p></div>
+      <div class="feature"><i data-icon="table"></i><h3>Table view</h3><p>See arrays of records as a sortable, filterable grid. Export to CSV or copy straight into a spreadsheet.</p></div>
+      <div class="feature"><i data-icon="diff"></i><h3>Structural diff</h3><p>Compare two documents by meaning, not formatting. Smart array matching spots inserted items.</p></div>
+      <div class="feature"><i data-icon="sparkles"></i><h3>Generate types</h3><p>TypeScript, Zod, JSON Schema, Go structs and Python TypedDicts — plus YAML and CSV conversion.</p></div>
+      <div class="feature"><i data-icon="wand"></i><h3>Auto-repair</h3><p>Comments, trailing commas, single quotes, JSONP and JSON Lines are understood and fixed for you.</p></div>
+    </section>
+
+    <footer class="landing-foot">
+      <span><i data-icon="shield"></i>No uploads, no tracking. Recent documents are kept only in this browser.</span>
+      <span><a href="https://github.com/alirezaaziz/json-inspector" target="_blank" rel="noopener noreferrer">Source on GitHub</a> · MIT License</span>
+    </footer>
+  </main>
+
+  <!-- ── Workspace ───────────────────────────────────────────────────────── -->
+  <main id="workspace" class="workspace" hidden>
+    <div class="ws-bar" id="treeBar">
+      <label class="search" id="qWrap">
+        <i data-icon="search"></i>
+        <span class="path-chip">JSONPath</span>
+        <input id="q" type="text" placeholder="Search keys & values, or type $.path for JSONPath" spellcheck="false" autocomplete="off" aria-label="Search">
+        <span class="q-info" id="qInfo" aria-live="polite"></span>
+        <button class="tgl" id="qCase" title="Match case" aria-pressed="false">Aa</button>
+        <button class="tgl" id="qRegex" title="Regular expression" aria-pressed="false">.*</button>
+        <button class="tgl" id="qFilter" title="Show only matching nodes" aria-pressed="false"><i data-icon="filter"></i></button>
+        <span class="vsep"></span>
+        <button class="icon-btn sm" id="qPrev" title="Previous match (Shift+Enter)" aria-label="Previous match"><i data-icon="up"></i></button>
+        <button class="icon-btn sm" id="qNext" title="Next match (Enter)" aria-label="Next match"><i data-icon="down"></i></button>
+      </label>
+      <span class="grow"></span>
+      <label class="select-wrap sm hide-sm" title="Key order"><i data-icon="sort"></i>
+        <select id="sortSel" aria-label="Key order"><option value="original">Original order</option><option value="asc">Keys A → Z</option><option value="desc">Keys Z → A</option></select>
+      </label>
+      <button class="icon-btn" id="btnExpand" title="Expand all (E)" aria-label="Expand all"><i data-icon="expand"></i></button>
+      <button class="icon-btn" id="btnCollapse" title="Collapse all (C)" aria-label="Collapse all"><i data-icon="collapse"></i></button>
+      <button class="icon-btn" id="btnInspector" title="Toggle inspector" aria-label="Toggle inspector"><i data-icon="panel"></i></button>
+    </div>
+
+    <div class="ws-body" id="wsBody">
+      <div class="views">
+        <section class="view" data-view="tree"><div id="tree" class="tree"></div></section>
+        <section class="view" data-view="raw" hidden></section>
+        <section class="view" data-view="table" hidden></section>
+        <section class="view" data-view="diff" hidden></section>
+        <section class="view" data-view="generate" hidden></section>
+      </div>
+      <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" aria-label="Resize inspector" tabindex="0"></div>
+      <aside class="inspector" id="inspector" aria-label="Inspector"></aside>
+    </div>
+
+    <footer class="status">
+      <nav class="crumbs" id="crumbs" aria-label="Selected path"></nav>
+      <div class="stats" id="stats"></div>
+    </footer>
+  </main>
+</div>
+
+<div class="drop" id="drop" aria-hidden="true"><div class="drop-inner"><i data-icon="upload"></i><span>Drop a JSON file to open it</span></div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<noscript><p style="padding:2rem;font-family:system-ui">JSON Inspector needs JavaScript to run.</p></noscript>
+</body>
+</html>
