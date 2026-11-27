@@ -1,0 +1,90 @@
+export const SAMPLES = [
+  {
+    name: 'REST API response',
+    desc: 'Paginated users with nested objects, dates and a JWT',
+    icon: 'globe',
+    data: {
+      status: 'ok',
+      requestId: 'req_8f2a91c4',
+      generatedAt: '2026-11-20T09:41:00Z',
+      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMDEiLCJuYW1lIjoiQWRhIExvdmVsYWNlIiwicm9sZSI6ImFkbWluIiwiZXhwIjoxOTkwMDAwMDAwfQ.signature-not-real',
+      pagination: { page: 1, perPage: 4, total: 4, next: null },
+      data: [
+        { id: 1, name: 'Ada Lovelace', email: 'ada@example.com', role: 'admin', active: true, score: 98.5, joined: '2021-03-14', avatarColor: '#6366f1', tags: ['math', 'engines'], address: { city: 'London', country: 'GB' } },
+        { id: 2, name: 'Alan Turing', email: 'alan@example.com', role: 'editor', active: false, score: 91.2, joined: '2022-06-23', avatarColor: '#10b981', tags: ['crypto'], address: { city: 'Manchester', country: 'GB' } },
+        { id: 3, name: 'Grace Hopper', email: 'grace@example.com', role: 'viewer', active: true, score: 87, joined: '2023-12-09', avatarColor: '#f59e0b', tags: [], address: { city: 'New York', country: 'US' } },
+        { id: 4, name: 'Katherine Johnson', email: null, role: 'viewer', active: true, score: 95.75, joined: '2024-08-26', avatarColor: '#ef4444', tags: ['orbits', 'nasa'], address: { city: 'Hampton', country: 'US' } },
+      ],
+      meta: '{"source":"cache","ttl":300,"region":"eu-west"}',
+    },
+  },
+  {
+    name: 'Product catalog',
+    desc: 'E-commerce items — try the Table view',
+    icon: 'table',
+    data: {
+      store: 'Northwind Electronics',
+      currency: 'EUR',
+      products: [
+        { sku: 'NW-1001', name: 'Laptop Pro 14', category: 'computers', price: 1899, stock: 12, rating: 4.7, specs: { cpu: 'M4 Pro', ram: '24GB', storage: '1TB' }, onSale: false },
+        { sku: 'NW-1002', name: 'Wireless Mouse', category: 'accessories', price: 49.9, stock: 0, rating: 4.2, specs: { dpi: 4000, buttons: 6 }, onSale: true },
+        { sku: 'NW-1003', name: '4K Monitor 27"', category: 'displays', price: 429, stock: 31, rating: 4.5, specs: { panel: 'IPS', refresh: 144 }, onSale: true },
+        { sku: 'NW-1004', name: 'Mechanical Keyboard', category: 'accessories', price: 129, stock: 54, rating: 4.8, specs: { switches: 'brown', layout: 'ISO' }, onSale: false },
+        { sku: 'NW-1005', name: 'USB-C Dock', category: 'accessories', price: 189, stock: 7, rating: 3.9, specs: { ports: 11, power: '100W' }, onSale: false },
+        { sku: 'NW-1006', name: 'Noise-cancelling Headphones', category: 'audio', price: 349, stock: 18, rating: 4.6, specs: { battery: '30h', anc: true }, onSale: true },
+      ],
+    },
+  },
+  {
+    name: 'App configuration',
+    desc: 'Deeply nested settings with mixed types',
+    icon: 'layers',
+    data: {
+      version: '3.2.0',
+      env: 'production',
+      server: { host: '0.0.0.0', port: 8080, tls: { enabled: true, cert: '/etc/ssl/cert.pem', protocols: ['TLSv1.2', 'TLSv1.3'] } },
+      database: { url: 'postgres://db.internal:5432/app', pool: { min: 2, max: 20, idleTimeoutMs: 30000 }, replicas: ['db-r1.internal', 'db-r2.internal'] },
+      features: { darkMode: true, betaUsers: null, rateLimit: { windowSec: 60, max: 100 } },
+      theme: { primary: '#4f46e5', accent: 'rgb(16, 185, 129)', radius: 10 },
+      logging: { level: 'info', destinations: ['stdout', { type: 'file', path: '/var/log/app.log', rotate: 'daily' }] },
+    },
+  },
+  {
+    name: 'GeoJSON',
+    desc: 'Feature collection with coordinates',
+    icon: 'globe',
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        { type: 'Feature', properties: { name: 'Tehran', population: 9500000 }, geometry: { type: 'Point', coordinates: [51.389, 35.6892] } },
+        { type: 'Feature', properties: { name: 'Tokyo', population: 13960000 }, geometry: { type: 'Point', coordinates: [139.6917, 35.6895] } },
+        { type: 'Feature', properties: { name: 'Berlin', population: 3645000 }, geometry: { type: 'Point', coordinates: [13.405, 52.52] } },
+        { type: 'Feature', properties: { name: 'Route' }, geometry: { type: 'LineString', coordinates: [[51.389, 35.6892], [13.405, 52.52]] } },
+      ],
+    },
+  },
+  {
+    name: 'Event log',
+    desc: 'Timestamps, levels and payloads',
+    icon: 'clock',
+    data: [
+      { ts: 1764233100, level: 'info', service: 'api', message: 'Server started', meta: { pid: 4121 } },
+      { ts: 1764233161, level: 'warn', service: 'api', message: 'Slow query', meta: { ms: 1840, query: 'SELECT * FROM orders' } },
+      { ts: 1764233212, level: 'error', service: 'worker', message: 'Job failed', meta: { job: 'sync-invoices', attempt: 3, error: 'ETIMEDOUT' } },
+      { ts: 1764233290, level: 'info', service: 'worker', message: 'Job retried', meta: { job: 'sync-invoices', attempt: 4 } },
+      { ts: 1764233355, level: 'debug', service: 'api', message: 'Cache hit', meta: { key: 'user:42', ttl: 120 } },
+    ],
+  },
+  {
+    name: 'package.json',
+    desc: 'A typical Node.js manifest',
+    icon: 'file',
+    data: {
+      name: 'my-app', version: '1.4.2', private: true, type: 'module',
+      scripts: { dev: 'vite', build: 'vite build', test: 'vitest run', lint: 'eslint .' },
+      dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0', zod: '^3.24.0' },
+      devDependencies: { vite: '^6.0.0', vitest: '^2.1.0', eslint: '^9.15.0', typescript: '^5.7.0' },
+      engines: { node: '>=20' },
+    },
+  },
+];

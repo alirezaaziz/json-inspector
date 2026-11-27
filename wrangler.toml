@@ -1,0 +1,5 @@
+# Cloudflare Pages configuration — static site, no build step.
+# Deploy with:  npx wrangler pages deploy
+name = "json-inspector"
+pages_build_output_dir = "public"
+compatibility_date = "2026-11-01"
